@@ -40,7 +40,7 @@ public class FeedbackService : IFeedbackService
     // Processes a new feedback submission
     public async Task<Feedback> SubmitFeedbackAsync(FeedbackRequest request)
     {
-        // Get company information from external API
+        // Step 1: Get company information from external API
         var company = await _companyService.GetCompanyByIdAsync(request.CompanyId);
 
         // Validate that company exists
@@ -49,10 +49,20 @@ public class FeedbackService : IFeedbackService
             throw new ArgumentException($"Company with ID {request.CompanyId} not found");
         }
 
-        // Create Feedback entity from request DTO
+        // Step 2: Get subscription details using the company's subscriptionId
+        var subscription = await _companyService.GetSubscriptionByIdAsync(company.SubscriptionId);
+
+        // Validate that subscription exists
+        if (subscription == null)
+        {
+            throw new ArgumentException($"Subscription with ID {company.SubscriptionId} not found");
+        }
+
+        // Step 3: Create Feedback entity from request DTO
         var feedback = new Feedback
         {
-            // Id is auto-generated
+            // Explicitly set Id to ensure Cosmos DB receives it
+            Id = Guid.NewGuid().ToString(),
             UserName = request.UserName,
             Comments = request.Comments,
             Rating = request.Rating,
@@ -60,11 +70,11 @@ public class FeedbackService : IFeedbackService
             CreatedAt = DateTime.UtcNow
         };
 
-        // Save feedback to Cosmos DB
+        // Step 4: Save feedback to Cosmos DB
         var savedFeedback = await _feedbackRepository.CreateFeedbackAsync(feedback);
 
-        // Check if follow-up processing is needed
-        bool needsFollowUp = ShouldQueueForFollowUp(request.Rating, company.Subscription);
+        // Step 5: Check if follow-up processing is needed
+        bool needsFollowUp = ShouldQueueForFollowUp(request.Rating, subscription.Type);
 
         if (needsFollowUp)
         {
@@ -77,7 +87,7 @@ public class FeedbackService : IFeedbackService
                 Rating = savedFeedback.Rating,
                 CompanyId = savedFeedback.CompanyId,
                 CompanyName = company.Name,
-                Subscription = company.Subscription
+                Subscription = subscription.Type  // Use subscription.Type
             };
 
             // Serialize message to JSON for queue
@@ -93,7 +103,7 @@ public class FeedbackService : IFeedbackService
     // Calculates price overview for a specific company
     public async Task<PriceOverviewResponse?> GetPriceOverviewAsync(int companyId)
     {
-        // Get company information from external API
+        // Step 1: Get company information from external API
         var company = await _companyService.GetCompanyByIdAsync(companyId);
 
         // Return null if company doesn't exist
@@ -102,7 +112,16 @@ public class FeedbackService : IFeedbackService
             return null;
         }
 
-        // Get all feedback for this company from Cosmos DB
+        // Step 2: Get subscription details for pricing information
+        var subscription = await _companyService.GetSubscriptionByIdAsync(company.SubscriptionId);
+
+        // Return null if subscription doesn't exist
+        if (subscription == null)
+        {
+            return null;
+        }
+
+        // Step 3: Get all feedback for this company from Cosmos DB
         var feedbacks = await _feedbackRepository.GetFeedbackByCompanyIdAsync(companyId);
         var feedbackList = feedbacks.ToList();
 
@@ -117,16 +136,16 @@ public class FeedbackService : IFeedbackService
             };
         }
 
-        // Calculate total price
-        decimal totalPrice = feedbackList.Count * company.PricePerMessage;
+        // Step 4: Calculate total price
+        decimal totalPrice = feedbackList.Count * subscription.Price;
 
-        // Calculate average rating
+        // Step 5: Calculate average rating
         decimal averageRating = (decimal)feedbackList.Average(f => f.Rating);
 
         // Round to one decimal place as per requirements
         averageRating = Math.Round(averageRating, 1);
 
-        // Build and return response
+        // Step 6: Build and return response
         return new PriceOverviewResponse
         {
             CompanyName = company.Name,
@@ -136,12 +155,12 @@ public class FeedbackService : IFeedbackService
     }
 
     // Helper method to determine if feedback needs follow-up
-    private bool ShouldQueueForFollowUp(int rating, string subscription)
+    private bool ShouldQueueForFollowUp(int rating, string subscriptionType)
     {
-
+        // Business rule from requirements:
         bool isLowRating = rating < 3;
-        bool isPremiumOrEnterprise = subscription.Equals("Premium", StringComparison.OrdinalIgnoreCase) ||
-                                      subscription.Equals("Enterprise", StringComparison.OrdinalIgnoreCase);
+        bool isPremiumOrEnterprise = subscriptionType.Equals("Premium", StringComparison.OrdinalIgnoreCase) ||
+                                      subscriptionType.Equals("Enterprise", StringComparison.OrdinalIgnoreCase);
 
         return isLowRating && isPremiumOrEnterprise;
     }

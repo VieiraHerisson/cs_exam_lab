@@ -1,5 +1,4 @@
 ### Test 1: Submit feedback with high rating (Basic company - no follow-up)
-### Expected: Saved to Cosmos DB only, no queue message
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -11,7 +10,6 @@ Content-Type: application/json
 }
 
 ### Test 2: Submit feedback with low rating - Basic subscription
-### Expected: Saved to Cosmos DB only (Basic doesn't trigger follow-up)
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -19,12 +17,10 @@ Content-Type: application/json
     "userName": "Jane Smith",
     "comments": "Service was slow",
     "rating": 2,
-    "companyId": 1
+    "companyId": 2
 }
 
 ### Test 3: Submit feedback with low rating - Premium subscription
-### Expected: Saved to Cosmos DB AND queued for follow-up (creates CSV)
-### Note: You need to find a Premium company ID from the API first
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -32,12 +28,10 @@ Content-Type: application/json
     "userName": "Bob Wilson",
     "comments": "Very disappointed with the response time",
     "rating": 1,
-    "companyId": 2
+    "companyId": 4
 }
 
 ### Test 4: Submit feedback with low rating - Enterprise subscription
-### Expected: Saved to Cosmos DB AND queued for follow-up (creates CSV)
-### Note: You need to find an Enterprise company ID from the API first
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -49,7 +43,6 @@ Content-Type: application/json
 }
 
 ### Test 5: Submit feedback with rating exactly 3
-### Expected: Saved to Cosmos DB only (rating must be BELOW 3 for follow-up)
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -57,11 +50,10 @@ Content-Type: application/json
     "userName": "Charlie Brown",
     "comments": "Average service, nothing special",
     "rating": 3,
-    "companyId": 2
+    "companyId": 3
 }
 
 ### Test 6: Invalid request - missing userName
-### Expected: 400 Bad Request with error message
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -72,7 +64,6 @@ Content-Type: application/json
 }
 
 ### Test 7: Invalid request - rating out of range
-### Expected: 400 Bad Request with error message
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -84,7 +75,6 @@ Content-Type: application/json
 }
 
 ### Test 8: Invalid request - company not found
-### Expected: 400 Bad Request with "Company not found" message
 POST http://localhost:7071/api/SubmitFeedback
 Content-Type: application/json
 
@@ -95,10 +85,6 @@ Content-Type: application/json
     "companyId": 99999
 }
 
-
-### ============================================
-### GET PRICE OVERVIEW TESTS
-### ============================================
 
 ### Test 9: Get price overview for company 1
 ### Expected: Returns companyName, totalPrice, averageRating
@@ -111,17 +97,11 @@ GET http://localhost:7071/api/GetPriceOverview/2
 GET http://localhost:7071/api/GetPriceOverview/3
 
 ### Test 12: Get price overview for non-existent company
-### Expected: 404 Not Found
 GET http://localhost:7071/api/GetPriceOverview/99999
 
 ### Test 13: Invalid company ID (negative)
-### Expected: 400 Bad Request
 GET http://localhost:7071/api/GetPriceOverview/-1
 
-
-### ============================================
-### EXTERNAL API TESTS (for reference)
-### ============================================
 
 ### Get all companies from external API
 ### Use this to find valid company IDs and their subscriptions

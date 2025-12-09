@@ -2,7 +2,6 @@ using FeedbackPlatform.Models;
 using System.Text.Json;
 
 namespace FeedbackPlatform.Services;
-
 public interface ICompanyService
 {
     // Retrieves company details by ID from external API
@@ -11,7 +10,16 @@ public interface ICompanyService
 
     // Retrieves all companies from external API
     Task<IEnumerable<Company>> GetAllCompaniesAsync();
+
+    // Retrieves subscription details by ID from external API
+    // Returns null if subscription not found
+    Task<Subscription?> GetSubscriptionByIdAsync(int subscriptionId);
+
+    // Retrieves all subscriptions from external API
+    // Returns list of Basic, Premium, Enterprise tiers with pricing
+    Task<IEnumerable<Subscription>> GetAllSubscriptionsAsync();
 }
+
 
 public class CompanyService : ICompanyService
 {
@@ -34,7 +42,6 @@ public class CompanyService : ICompanyService
         };
     }
 
-    // Fetches a single company by ID from the external API
     public async Task<Company?> GetCompanyByIdAsync(int companyId)
     {
         try
@@ -42,7 +49,7 @@ public class CompanyService : ICompanyService
             // Make GET request to the Companies endpoint
             var response = await _httpClient.GetAsync($"/companies/{companyId}");
 
-            // Check if request was successful
+            // Check if request was successful (200-299 status code)
             if (!response.IsSuccessStatusCode)
             {
                 // Company not found or API error - return null
@@ -59,11 +66,11 @@ public class CompanyService : ICompanyService
         }
         catch (HttpRequestException)
         {
+            // Network error or API unavailable
             return null;
         }
     }
 
-    // Fetches all companies from the external API
     public async Task<IEnumerable<Company>> GetAllCompaniesAsync()
     {
         try
@@ -89,6 +96,58 @@ public class CompanyService : ICompanyService
         {
             // Network error - return empty list
             return Enumerable.Empty<Company>();
+        }
+    }
+
+    public async Task<Subscription?> GetSubscriptionByIdAsync(int subscriptionId)
+    {
+        try
+        {
+            // Make GET request to the Subscriptions endpoint
+            var response = await _httpClient.GetAsync($"/subscriptions/{subscriptionId}");
+
+            // Check if request was successful
+            if (!response.IsSuccessStatusCode)
+            {
+                // Subscription not found or API error - return null
+                return null;
+            }
+
+            // Read and deserialize response
+            var json = await response.Content.ReadAsStringAsync();
+            var subscription = JsonSerializer.Deserialize<Subscription>(json, _jsonOptions);
+
+            return subscription;
+        }
+        catch (HttpRequestException)
+        {
+            // Network error - return null
+            return null;
+        }
+    }
+
+    public async Task<IEnumerable<Subscription>> GetAllSubscriptionsAsync()
+    {
+        try
+        {
+            // Make GET request to list all subscriptions
+            var response = await _httpClient.GetAsync("/subscriptions");
+
+            // Check if request was successful
+            if (!response.IsSuccessStatusCode)
+            {
+                return Enumerable.Empty<Subscription>();
+            }
+
+            // Read and deserialize response
+            var json = await response.Content.ReadAsStringAsync();
+            var subscriptions = JsonSerializer.Deserialize<IEnumerable<Subscription>>(json, _jsonOptions);
+
+            return subscriptions ?? Enumerable.Empty<Subscription>();
+        }
+        catch (HttpRequestException)
+        {
+            return Enumerable.Empty<Subscription>();
         }
     }
 }

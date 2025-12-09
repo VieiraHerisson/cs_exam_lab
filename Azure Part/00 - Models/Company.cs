@@ -12,12 +12,7 @@ public class Company
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
-    // Subscription tier: "Basic", "Premium", or "Enterprise"
-    // Premium and Enterprise customers with low ratings get follow-up processing
-    [JsonPropertyName("subscription")]
-    public string Subscription { get; set; } = string.Empty;
-
-    // Price per feedback message based on subscription tier
-    [JsonPropertyName("pricePerMessage")]
-    public decimal PricePerMessage { get; set; }
+    // Foreign key to subscription - we need to look up subscription details separately
+    [JsonPropertyName("subscriptionId")]
+    public int SubscriptionId { get; set; }
 }

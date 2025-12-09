@@ -2,13 +2,12 @@ using System.Text.Json.Serialization;
 
 namespace FeedbackPlatform.Models;
 
-// Feedback entity stored in Cosmos DB
-// The partition key is companyId for efficient querying by company
+
 public class Feedback
 {
     // Unique identifier for the feedback document
     [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Id { get; set; }
 
     // The name of the user submitting feedback
     [JsonPropertyName("userName")]
@@ -29,5 +28,12 @@ public class Feedback
 
     // Timestamp when feedback was submitted
     [JsonPropertyName("createdAt")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
+
+    // Parameterless constructor ensures Id is always generated
+    public Feedback()
+    {
+        Id = Guid.NewGuid().ToString();
+        CreatedAt = DateTime.UtcNow;
+    }
 }

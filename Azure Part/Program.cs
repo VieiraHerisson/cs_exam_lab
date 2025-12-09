@@ -24,12 +24,22 @@ builder.Services.AddSingleton<CosmosClient>(serviceProvider =>
     // Get connection string from configuration
     var connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
 
-    // Create CosmosClient with connection string
-    return new CosmosClient(connectionString);
+    // Configure CosmosClient with custom serializer options
+    // This ensures that [JsonPropertyName] attributes are respected
+    var cosmosClientOptions = new CosmosClientOptions
+    {
+        // Use System.Text.Json serializer with proper settings
+        SerializerOptions = new CosmosSerializationOptions
+        {
+            // Use camelCase for property names (matches our [JsonPropertyName] attributes)
+            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        }
+    };
+
+    // Create CosmosClient with connection string and options
+    return new CosmosClient(connectionString, cosmosClientOptions);
 });
 
-
-// Register QueueClient as singleton for sending messages
 builder.Services.AddSingleton<QueueClient>(serviceProvider =>
 {
     // Get connection string and queue name from configuration
@@ -42,7 +52,6 @@ builder.Services.AddSingleton<QueueClient>(serviceProvider =>
         MessageEncoding = QueueMessageEncoding.Base64
     });
 });
-
 
 // Register BlobContainerClient as singleton for blob operations
 builder.Services.AddSingleton<BlobContainerClient>(serviceProvider =>
