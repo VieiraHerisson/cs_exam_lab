@@ -40,7 +40,7 @@ public class CompanyService : ICompanyService
         try
         {
             // Make GET request to the Companies endpoint
-            var response = await _httpClient.GetAsync($"/api/Companies/{companyId}");
+            var response = await _httpClient.GetAsync($"/companies/{companyId}");
 
             // Check if request was successful
             if (!response.IsSuccessStatusCode)
@@ -69,7 +69,7 @@ public class CompanyService : ICompanyService
         try
         {
             // Make GET request to list all companies
-            var response = await _httpClient.GetAsync("/api/Companies");
+            var response = await _httpClient.GetAsync("/companies");
 
             // Check if request was successful
             if (!response.IsSuccessStatusCode)
